@@ -71,8 +71,8 @@ arms:
 cameras:
   ee_camera:  # End effector camera (RealSense D405)
     type: realsense
-    serial_number: null  # Run `lerobot find-cameras realsense` to get serial; update if multiple devices
-    width: 640
+    serial_number: 218622275492  # Run `lerobot find-cameras realsense` to get serial; update if multiple devices
+    width: 848    
     height: 480
     fps: 30
     enable_color: true  # RGB stream
