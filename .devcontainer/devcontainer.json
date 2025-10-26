@@ -1,0 +1,19 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "LeRobot Custom Arm Dev Container",
+  "dockerFile": "../Dockerfile",  // Path to your Dockerfile (adjust if needed)
+  "context": "..",  // Build context (root of your repo)
+  "runArgs": [
+    "--privileged",  // For USB access
+    "--device=/dev/ttyUSB0:/dev/ttyUSB0"  // Map your motor port
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",  // For Python support
+        "ms-vscode-remote.remote-containers"  // Dev Containers itself
+      ]
+    }
+  },
+  "postCreateCommand": "pip install -r requirements.txt"  // Run any post-setup commands
+}
