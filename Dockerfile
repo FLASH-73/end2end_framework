@@ -14,7 +14,8 @@ RUN pip install lerobot[usb-cameras] feetech-servo-sdk
 # Copy your project files
 WORKDIR /app
 COPY . /app/
-
+# Previous content remains the same, add this line before the ENTRYPOINT or at the end of installations
+RUN pip install pyrealsense2
 # Install additional dependencies
 RUN pip install -r requirements.txt
 
