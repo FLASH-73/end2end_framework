@@ -1,19 +1,28 @@
 import math
 from typing import Dict, Optional, Any
-import torch
-from lerobot.common.robot_devices.actuators.feetech import FeetechActuator
-from lerobot.common.robot_devices.robots.manipulator import ManipulatorRobot, Arm
-from lerobot.common.robot_devices.actuators.bus import Bus
-from lerobot.common.robot_devices.cameras.v4l2_camera import V4l2Camera  # Example camera, adjust if needed
 
-class DualFeetechActuator(FeetechActuator):
+from dataclasses import dataclass, field
+
+from dataclasses import dataclass, field
+from functools import cached_property
+import time
+import logging
+from typing import Any
+from lerobot.cameras import CameraConfig
+from lerobot.cameras.opencv import OpenCVCameraConfig
+from lerobot.robots import RobotConfig
+from lerobot.cameras import make_cameras_from_configs
+from lerobot.motors import Motor, MotorNormMode
+from lerobot.motors.feetech import FeetechMotorsBus
+from lerobot.robots import Robot
+
+class DualFeetechActuator(FeetechMotorsBus):
     """Custom actuator for dual-servos controlling one joint (opposed/mirrored)."""
     def __init__(
         self,
         name: str,
         leader_id: int,
         follower_id: int,
-        bus: Bus,
         model: str = "sts3215",
         calibration: Optional[Dict[str, Any]] = None,
         scale: float = 2048 / math.pi,  # Default ticks per rad (approx for STS3215)
