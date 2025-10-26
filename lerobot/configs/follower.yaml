@@ -3,7 +3,7 @@ robot:
   class: CustomArmRobot
   kwargs:
     port: "/dev/ttyUSB0"
-    is_leader: false  # Toggle for leader/follower
+    is_leader: false
 cameras:
   - name: main_camera
     class: LogitechC270

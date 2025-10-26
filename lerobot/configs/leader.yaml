@@ -1,0 +1,14 @@
+robot:
+  name: custom_arm
+  class: CustomArmRobot
+  kwargs:
+    port: "/dev/ttyUSB1"
+    is_leader: true
+cameras:
+  - name: main_camera
+    class: LogitechC270
+    kwargs:
+      index: 0
+      width: 640
+      height: 480
+      fps: 30

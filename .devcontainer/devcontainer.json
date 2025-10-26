@@ -5,7 +5,13 @@
   "context": "..",  // Build context (root of your repo)
   "runArgs": [
     "--privileged",  // For USB access
-    "--device=/dev/ttyUSB0:/dev/ttyUSB0"  // Map your motor port
+    "--gpus=all",
+    "--device=/dev/input/js0:/dev/input/js0",
+    "--device=/dev/ttyUSB0:/dev/ttyUSB0",  // Follower arm
+    "--device=/dev/ttyUSB1:/dev/ttyUSB1"   // Leader arm
+  ],
+  "mounts": [
+    "source=/dev,target=/dev,type=bind"  // Mount entire /dev for full device access
   ],
   "customizations": {
     "vscode": {

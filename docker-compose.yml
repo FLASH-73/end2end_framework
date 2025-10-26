@@ -5,7 +5,8 @@ services:
     volumes:
       - /dev:/dev
     devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB0:/dev/ttyUSB0  # Follower arm
+      - /dev/ttyUSB1:/dev/ttyUSB1  # Leader arm
     privileged: true
     environment:
       - NVIDIA_VISIBLE_DEVICES=all

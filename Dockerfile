@@ -10,8 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install LeRobot and dependencies
-RUN pip install lerobot[usb-cameras] scservo_sdk
-
+RUN pip install lerobot[usb-cameras] feetech-servo-sdk
 # Copy your project files
 WORKDIR /app
 COPY . /app/
