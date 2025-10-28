@@ -1,0 +1,22 @@
+# Robot configuration
+robot:
+  _target_: lerobot.robots.umbra.umbra_follower.UmbraFollowerRobotConfig
+  port: /dev/ttyUSB0
+  use_degrees: True
+  disable_torque_on_disconnect: True
+  # Safety feature: max distance between current and goal position for each joint.
+  # This is useful to prevent jerky movements when teleoperating.
+  # The value is in the same unit as the action space (degrees or normalized).
+  max_relative_target: 20.0 # example value in degrees
+
+  # Camera configurations
+  cameras:
+    wrist_camera:
+      _target_: lerobot.cameras.realsense.configuration_realsense.RealSenseCameraConfig
+      serial_number: "218622275492"
+      width: 848
+      height: 480
+      fps: 30
+      color_mode: "RGB"
+      rotation: "NO_ROTATION"
+      use_depth: True

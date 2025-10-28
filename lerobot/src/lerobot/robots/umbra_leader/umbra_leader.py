@@ -1,85 +1,76 @@
-from dataclasses import dataclass, field
-from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
-from lerobot.cameras.realsense.camera_realsense import RealSenseCamera
-from lerobot.cameras.configs import ColorMode, Cv2Rotation
-from lerobot.cameras import CameraConfig
-from lerobot.cameras.opencv import OpenCVCameraConfig
-from lerobot.robots import RobotConfig
-from lerobot.cameras import make_cameras_from_configs
-from lerobot.motors import Motor, MotorNormMode, MotorCalibration
-from functools import cached_property
-from lerobot.utils.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
+#!/usr/bin/env python
+
+# Copyright 2025 The HuggingFace Inc. team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
-from lerobot.motors.feetech import FeetechMotorsBus
-from lerobot.robots import Robot
 import time
+from functools import cached_property
 from typing import Any
+
+from lerobot.cameras.utils import make_cameras_from_configs
+from lerobot.motors import Motor, MotorCalibration, MotorNormMode
 from lerobot.motors.feetech import (
     FeetechMotorsBus,
     OperatingMode,
 )
-from ..utils import ensure_safe_goal_position
+from lerobot.utils.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 
+from ..robot import Robot
+from ..utils import ensure_safe_goal_position
+from .config_umbra_leader import UmbraLeaderConfig
 
 logger = logging.getLogger(__name__)
 
 
-config = RealSenseCameraConfig(
-    serial_number="218622275492",
-    width=848,
-    height=480,
-    fps=30,
-    color_mode=ColorMode.RGB,
-    rotation=Cv2Rotation.NO_ROTATION,
-    use_depth=True,
-    
-)
-camera = RealSenseCamera(config)
-camera.connect()
+class UmbraLeaderRobot(Robot):
+    """
+    SO-101 Follower Arm designed by TheRobotStudio and Hugging Face.
+    """
 
-@RobotConfig.register_subclass("umbra_follower")
-@dataclass
-class UmbraFollowerRobotConfig(RobotConfig):
-    port: str = "/dev/ttyUSB0"
-    disable_torque_on_disconnect: bool = True
-    use_degrees: bool = True
+    config_class = UmbraLeaderConfig
+    name = "umbra_leader"
 
-
-class UmbraFollowerRobot(Robot):
-    """Robot class for Umbra Follower arm."""
-
-    def __init__(self, config: UmbraFollowerRobotConfig):
+    def __init__(self, config: UmbraLeaderConfig):
         super().__init__(config)
         self.config = config
-        leader_id: int
-        follower_id: int
         norm_mode_body = MotorNormMode.DEGREES if config.use_degrees else MotorNormMode.RANGE_M100_100
         self.bus = FeetechMotorsBus(
             port=self.config.port,
             motors={
-                "base_joint": Motor(1, "sts3215", norm_mode_body),
-                "joint2": Motor(2, "sts3215", norm_mode_body),
-                "joint3": Motor(3, "sts3215", norm_mode_body),
-                "joint4": Motor(4, "sts3215", norm_mode_body),
-                "joint5": Motor(5, "sts3215", norm_mode_body),
-                "joint6": Motor(6, "sts3215", norm_mode_body),
-                "joint7": Motor(7, "sts3215", norm_mode_body),
-                "joint8": Motor(8, "sts3215", norm_mode_body),
-                "gripper": Motor(9, "sts3215", MotorNormMode.RANGE_0_100),
+                "base": Motor(1, "sts3215", norm_mode_body),
+                "link1": Motor(2, "sts3215", norm_mode_body),
+                "link2": Motor(3, "sts3215", norm_mode_body),
+                "link3": Motor(4, "sts3215", norm_mode_body),
+                "link4": Motor(5, "sts3215", norm_mode_body),
+                "link5": Motor(6, "sts3215", norm_mode_body),
+                "gripper": Motor(7, "sts3215", MotorNormMode.RANGE_0_100),
             },
-            calibration = self.calibration,
+            calibration=self.calibration,
         )
         self.cameras = make_cameras_from_configs(config.cameras)
 
     @property
     def _motors_ft(self) -> dict[str, type]:
-            return {f"{motor}.pos": float for motor in self.bus.motors}
-                                        
+        return {f"{motor}.pos": float for motor in self.bus.motors}
+
     @property
     def _cameras_ft(self) -> dict[str, tuple]:
         return {
             cam: (self.config.cameras[cam].height, self.config.cameras[cam].width, 3) for cam in self.cameras
         }
+
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
         return {**self._motors_ft, **self._cameras_ft}
@@ -119,7 +110,7 @@ class UmbraFollowerRobot(Robot):
 
     def calibrate(self) -> None:
         if self.calibration:
-            # Calibration file exists, ask user whether to use it or run new calibration
+            # self.calibration is not empty here
             user_input = input(
                 f"Press ENTER to use provided calibration file associated with the id {self.id}, or type 'c' and press ENTER to run calibration: "
             )
@@ -136,15 +127,11 @@ class UmbraFollowerRobot(Robot):
         input(f"Move {self} to the middle of its range of motion and press ENTER....")
         homing_offsets = self.bus.set_half_turn_homings()
 
-        full_turn_motor = "wrist_roll"
-        unknown_range_motors = [motor for motor in self.bus.motors if motor != full_turn_motor]
         print(
-            f"Move all joints except '{full_turn_motor}' sequentially through their "
-            "entire ranges of motion.\nRecording positions. Press ENTER to stop..."
+            "Move all joints sequentially through their entire ranges "
+            "of motion.\nRecording positions. Press ENTER to stop..."
         )
-        range_mins, range_maxes = self.bus.record_ranges_of_motion(unknown_range_motors)
-        range_mins[full_turn_motor] = 0
-        range_maxes[full_turn_motor] = 4095
+        range_mins, range_maxes = self.bus.record_ranges_of_motion()
 
         self.calibration = {}
         for motor, m in self.bus.motors.items():
@@ -172,7 +159,9 @@ class UmbraFollowerRobot(Robot):
                 self.bus.write("D_Coefficient", motor, 32)
 
                 if motor == "gripper":
-                    self.bus.write("Max_Torque_Limit", motor, 500)  # 50% of max torque to avoid burnout
+                    self.bus.write(
+                        "Max_Torque_Limit", motor, 500
+                    )  # 50% of the max torque limit to avoid burnout
                     self.bus.write("Protection_Current", motor, 250)  # 50% of max current to avoid burnout
                     self.bus.write("Overload_Torque", motor, 25)  # 25% torque when overloaded
 
