@@ -34,9 +34,7 @@ def make_robot_from_config(config: RobotConfig) -> Robot:
     elif config.type == "umbra_follower":
         from .umbra_follower.umbra_follower import UmbraFollowerRobot  # Note the .umbra_follower subpackage
         return UmbraFollowerRobot(config)
-    elif config.type == "umbra_leader":
-        from .umbra_leader.umbra_leader import UmbraLeaderRobot  # Note the .umbra_leader subpackage
-        return UmbraLeaderRobot(config)
+    
     elif config.type == "so101_follower":
         from .so101_follower import SO101Follower
 

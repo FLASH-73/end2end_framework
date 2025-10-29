@@ -81,7 +81,7 @@ class MotorNormMode(str, Enum):
     RANGE_0_100 = "range_0_100"
     RANGE_M100_100 = "range_m100_100"
     DEGREES = "degrees"
-    CUSTOM = "custom"
+
 
 
 @dataclass
@@ -793,6 +793,8 @@ class MotorsBus(abc.ABC):
                 max_res = self.model_resolution_table[self._id_to_model(id_)] - 1
                 normalized_values[id_] = (val - mid) * 360 / max_res
             else:
+                print("Unknown normalization mode:")
+                print(self.motors[motor].norm_mode)
                 raise NotImplementedError
 
         return normalized_values
@@ -1178,7 +1180,7 @@ class MotorsBus(abc.ABC):
             ids_values = self._unnormalize(ids_values)
 
         ids_values = self._encode_sign(data_name, ids_values)
-
+        
         err_msg = f"Failed to sync write '{data_name}' with {ids_values=} after {num_retry + 1} tries."
         self._sync_write(addr, length, ids_values, num_retry=num_retry, raise_on_error=True, err_msg=err_msg)
 

@@ -19,7 +19,6 @@ import time
 from functools import cached_property
 from typing import Any
 
-from lerobot.cameras.utils import make_cameras_from_configs
 from lerobot.motors import Motor, MotorCalibration, MotorNormMode
 from lerobot.motors.feetech import (
     FeetechMotorsBus,
@@ -27,16 +26,17 @@ from lerobot.motors.feetech import (
 )
 from lerobot.utils.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
 
-from ..robot import Robot
-from ..utils import ensure_safe_goal_position
-from .config_umbra_leader import UmbraLeaderConfig
+from lerobot.teleoperators import Teleoperator  # Changed from Robot
+#from ..utils import ensure_safe_goal_position
+from .config_umbra_leader import UmbraLeaderConfig  # Ensure this subclasses TeleoperatorConfig
 
 logger = logging.getLogger(__name__)
 
 
-class UmbraLeaderRobot(Robot):
+class UmbraLeaderRobot(Teleoperator):  # Changed to Teleoperator
     """
-    SO-101 Follower Arm designed by TheRobotStudio and Hugging Face.
+    Umbra Leader Arm - a simple 7-servo arm with 6 standard joints and 1 gripper control servo.
+    All servos are Feetech STS3215. No dual-motor joints. No cameras.
     """
 
     config_class = UmbraLeaderConfig
@@ -59,29 +59,24 @@ class UmbraLeaderRobot(Robot):
             },
             calibration=self.calibration,
         )
-        self.cameras = make_cameras_from_configs(config.cameras)
 
     @property
     def _motors_ft(self) -> dict[str, type]:
         return {f"{motor}.pos": float for motor in self.bus.motors}
 
-    @property
-    def _cameras_ft(self) -> dict[str, tuple]:
-        return {
-            cam: (self.config.cameras[cam].height, self.config.cameras[cam].width, 3) for cam in self.cameras
-        }
-
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
-        return {**self._motors_ft, **self._cameras_ft}
+        return self._motors_ft
 
     @cached_property
     def action_features(self) -> dict[str, type]:
         return self._motors_ft
-
+    @property
+    def feedback_features(self) -> dict[str, type]:
+        return {}
     @property
     def is_connected(self) -> bool:
-        return self.bus.is_connected and all(cam.is_connected for cam in self.cameras.values())
+        return self.bus.is_connected
 
     def connect(self, calibrate: bool = True) -> None:
         """
@@ -90,16 +85,14 @@ class UmbraLeaderRobot(Robot):
         """
         if self.is_connected:
             raise DeviceAlreadyConnectedError(f"{self} already connected")
-
+        logger.info(f"Current motors keys: {list(self.bus.motors.keys())}")
+        logger.info(f"Calibration keys: {list(self.calibration.keys()) if self.calibration else 'None'}")
         self.bus.connect()
         if not self.is_calibrated and calibrate:
             logger.info(
                 "Mismatch between calibration values in the motor and the calibration file or no calibration file found"
             )
             self.calibrate()
-
-        for cam in self.cameras.values():
-            cam.connect()
 
         self.configure()
         logger.info(f"{self} connected.")
@@ -128,7 +121,7 @@ class UmbraLeaderRobot(Robot):
         homing_offsets = self.bus.set_half_turn_homings()
 
         print(
-            "Move all joints sequentially through their entire ranges "
+            "Move all joints (including gripper control) sequentially through their entire ranges "
             "of motion.\nRecording positions. Press ENTER to stop..."
         )
         range_mins, range_maxes = self.bus.record_ranges_of_motion()
@@ -148,22 +141,10 @@ class UmbraLeaderRobot(Robot):
         print("Calibration saved to", self.calibration_fpath)
 
     def configure(self) -> None:
-        with self.bus.torque_disabled():
-            self.bus.configure_motors()
-            for motor in self.bus.motors:
-                self.bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
-                # Set P_Coefficient to lower value to avoid shakiness (Default is 32)
-                self.bus.write("P_Coefficient", motor, 16)
-                # Set I_Coefficient and D_Coefficient to default value 0 and 32
-                self.bus.write("I_Coefficient", motor, 0)
-                self.bus.write("D_Coefficient", motor, 32)
-
-                if motor == "gripper":
-                    self.bus.write(
-                        "Max_Torque_Limit", motor, 500
-                    )  # 50% of the max torque limit to avoid burnout
-                    self.bus.write("Protection_Current", motor, 250)  # 50% of max current to avoid burnout
-                    self.bus.write("Overload_Torque", motor, 25)  # 25% torque when overloaded
+        self.bus.disable_torque()
+        self.bus.configure_motors()
+        for motor in self.bus.motors:
+            self.bus.write("Operating_Mode", motor, OperatingMode.POSITION.value)
 
     def setup_motors(self) -> None:
         for motor in reversed(self.bus.motors):
@@ -171,61 +152,25 @@ class UmbraLeaderRobot(Robot):
             self.bus.setup_motor(motor)
             print(f"'{motor}' motor id set to {self.bus.motors[motor].id}")
 
-    def get_observation(self) -> dict[str, Any]:
-        if not self.is_connected:
-            raise DeviceNotConnectedError(f"{self} is not connected.")
+ 
 
-        # Read arm position
+    def get_action(self) -> dict[str, float]:
         start = time.perf_counter()
-        obs_dict = self.bus.sync_read("Present_Position")
-        obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
+        action = self.bus.sync_read("Present_Position")
+        action = {f"{motor}.pos": val for motor, val in action.items()}
+        print("Leader:action", action)  # print statement is purely for debugging
         dt_ms = (time.perf_counter() - start) * 1e3
-        logger.debug(f"{self} read state: {dt_ms:.1f}ms")
+        logger.debug(f"{self} read action: {dt_ms:.1f}ms")
+        return action
 
-        # Capture images from cameras
-        for cam_key, cam in self.cameras.items():
-            start = time.perf_counter()
-            obs_dict[cam_key] = cam.async_read()
-            dt_ms = (time.perf_counter() - start) * 1e3
-            logger.debug(f"{self} read {cam_key}: {dt_ms:.1f}ms")
-
-        return obs_dict
-
-    def send_action(self, action: dict[str, Any]) -> dict[str, Any]:
-        """Command arm to move to a target joint configuration.
-
-        The relative action magnitude may be clipped depending on the configuration parameter
-        `max_relative_target`. In this case, the action sent differs from original action.
-        Thus, this function always returns the action actually sent.
-
-        Raises:
-            RobotDeviceNotConnectedError: if robot is not connected.
-
-        Returns:
-            the action sent to the motors, potentially clipped.
-        """
-        if not self.is_connected:
-            raise DeviceNotConnectedError(f"{self} is not connected.")
-
-        goal_pos = {key.removesuffix(".pos"): val for key, val in action.items() if key.endswith(".pos")}
-
-        # Cap goal position when too far away from present position.
-        # /!\ Slower fps expected due to reading from the follower.
-        if self.config.max_relative_target is not None:
-            present_pos = self.bus.sync_read("Present_Position")
-            goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
-            goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
-
-        # Send goal position to the arm
-        self.bus.sync_write("Goal_Position", goal_pos)
-        return {f"{motor}.pos": val for motor, val in goal_pos.items()}
+    def send_feedback(self, feedback: dict[str, float]) -> None:
+        # TODO(rcadene, aliberts): Implement force feedback
+        raise NotImplementedError
 
     def disconnect(self):
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
 
         self.bus.disconnect(self.config.disable_torque_on_disconnect)
-        for cam in self.cameras.values():
-            cam.disconnect()
 
         logger.info(f"{self} disconnected.")

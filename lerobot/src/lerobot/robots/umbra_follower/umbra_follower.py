@@ -29,41 +29,7 @@ class UmbraFollowerRobot(Robot):
     config_class = UmbraFollowerConfig
     name = "umbra_follower"
 
-    class LinearGripper(Motor):
-        """
-        Custom motor class for a linear gripper.
-        Maps a linear distance (e.g., 0.0m to 0.024m) to servo ticks.
-        The tick values should be determined once and hardcoded.
-        - min_dist: The distance between clamps when fully closed (meters).
-        - max_dist: The distance between clamps when fully open (meters).
-        - min_ticks: The servo tick value for min_dist.
-        - max_ticks: The servo tick value for max_dist.
-        """
-
-        def __init__(self, motor_id: int, model: str):
-            # These values need to be measured from your physical gripper
-            self.min_dist = 0.0
-            self.max_dist = 0.024  # example: 24mm
-            self.min_ticks = 2109  # example: ticks for closed
-            self.max_ticks = 3570  # example: ticks for open
-
-            # The norm_mode is now custom, not from the parent class
-            super().__init__(motor_id, model, norm_mode=MotorNormMode.CUSTOM)
-            self.range_min = self.min_ticks
-            self.range_max = self.max_ticks
-
-            # Pre-calculate scale and offset for conversion
-            self.scale = (self.max_ticks - self.min_ticks) / (self.max_dist - self.min_dist)
-            self.offset = self.min_ticks - self.min_dist * self.scale
-
-        def to_motor(self, val: float) -> int:
-            """Convert distance in meters to servo ticks."""
-            return int(self.offset + val * self.scale)
-
-        def from_motor(self, val: int) -> float:
-            """Convert servo ticks to distance in meters."""
-            return (val - self.offset) / self.scale
-
+  
     def __init__(self, config: UmbraFollowerConfig):
         super().__init__(config)
         self.config = config
@@ -72,11 +38,11 @@ class UmbraFollowerRobot(Robot):
         single_joints = ["base", "link3", "link4", "link5"]
         follower_motors = {
             f"{joint}_follower": Motor(id_val, "sts3215", norm_mode_body)
-            for joint, id_val in zip(dual_joints, [3, 5])
+            for joint, id_val in zip(dual_joints, [2, 5])
         }
         leader_motors = {
             joint: Motor(id_val, "sts3215", norm_mode_body)
-            for joint, id_val in zip(dual_joints, [2, 4])
+            for joint, id_val in zip(dual_joints, [3, 4])
         }
         single_motors = {
             joint: Motor(id_val, "sts3215", norm_mode_body)
@@ -87,7 +53,7 @@ class UmbraFollowerRobot(Robot):
             motors={
                 **single_motors,
                 **leader_motors,
-                "gripper": self.LinearGripper(9, "sts3215"),
+                "gripper": Motor(9, "sts3215", MotorNormMode.RANGE_0_100),
                 **follower_motors,
             },
             calibration=self.calibration,
@@ -111,6 +77,10 @@ class UmbraFollowerRobot(Robot):
     @cached_property
     def action_features(self) -> dict[str, type]:
         return self._motors_ft
+
+    @property
+    def feedback_features(self) -> dict[str, type]:
+        return {}
 
     @property
     def is_connected(self) -> bool:
@@ -137,6 +107,8 @@ class UmbraFollowerRobot(Robot):
 
         self.configure()
         logger.info(f"{self} connected.")
+        self.bus.enable_torque()
+      
 
     @property
     def is_calibrated(self) -> bool:
@@ -161,23 +133,12 @@ class UmbraFollowerRobot(Robot):
         input(f"Move {self} to the middle of its range of motion and press ENTER....")
         homing_offsets = self.bus.set_half_turn_homings()
 
-        full_turn_motor = "wrist_roll"
         # Exclude gripper from range recording as it has its own calibration
-        unknown_range_motors = [
-            motor for motor in self.bus.motors if motor != full_turn_motor and motor != "gripper"
-        ]
         print(
-            f"Move all joints except '{full_turn_motor}' and 'gripper' sequentially through their "
+            "Move all joints (including gripper) sequentially through their "
             "entire ranges of motion.\nRecording positions. Press ENTER to stop..."
         )
-        range_mins, range_maxes = self.bus.record_ranges_of_motion(unknown_range_motors)
-        range_mins[full_turn_motor] = 0
-        range_maxes[full_turn_motor] = 4095
-
-        # Add gripper's hardcoded range to the calibration data
-        gripper_motor = self.bus.motors["gripper"]
-        range_mins["gripper"] = gripper_motor.range_min
-        range_maxes["gripper"] = gripper_motor.range_max
+        range_mins, range_maxes = self.bus.record_ranges_of_motion()
 
         self.calibration = {}
         for motor, m in self.bus.motors.items():
@@ -192,6 +153,7 @@ class UmbraFollowerRobot(Robot):
         self.bus.write_calibration(self.calibration)
         self._save_calibration()
         print("Calibration saved to", self.calibration_fpath)
+        self.bus.enable_torque()
 
     def configure(self) -> None:
         with self.bus.torque_disabled():
@@ -223,9 +185,14 @@ class UmbraFollowerRobot(Robot):
         start = time.perf_counter()
         obs_dict = self.bus.sync_read("Present_Position")
         obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
+        print("Follower:raw_obs", obs_dict)
         # Average positions for dual joints
+        '''
         for joint in self.dual_joints:
             obs_dict[f"{joint}.pos"] = (obs_dict[f"{joint}.pos"] - obs_dict[f"{joint}_follower.pos"]) / 2
+            del obs_dict[f"{joint}_follower.pos"]
+            '''
+        print("Follower:obs", obs_dict)  # for debugging
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read state: {dt_ms:.1f}ms")
 
@@ -255,23 +222,28 @@ class UmbraFollowerRobot(Robot):
             raise DeviceNotConnectedError(f"{self} is not connected.")
 
         goal_pos = {key.removesuffix(".pos"): val for key, val in action.items() if key.endswith(".pos")}
-
+        print("Follower:goal_pos", goal_pos)  # for debugging
         # Cap goal position when too far away from present position.
         # /!\ Slower fps expected due to reading from the follower.
         if self.config.max_relative_target is not None:
             present_pos = self.bus.sync_read("Present_Position")
-            goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items() if key in self.bus.motors}
+            goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
             goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
-
+        
+        
         # Set mirrored goals for follower motors in dual joints
         for joint in self.dual_joints:
             if joint in goal_pos:
                 goal_pos[f"{joint}_follower"] = -goal_pos[joint]
-
+        
+        goal_pos["gripper"] = 100 - goal_pos["gripper"]
+        goal_pos["link4"] = -goal_pos["link4"]
+        
         # Send goal position to the arm
         self.bus.sync_write("Goal_Position", goal_pos)
+        print("follower: sent goals", goal_pos)  # for debugging
         return {f"{motor}.pos": val for motor, val in goal_pos.items() if motor in self.bus.motors and not motor.endswith("_follower")}
-
+    
     def disconnect(self):
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
