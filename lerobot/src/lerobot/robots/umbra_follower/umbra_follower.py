@@ -38,11 +38,11 @@ class UmbraFollowerRobot(Robot):
         single_joints = ["base", "link3", "link4", "link5"]
         follower_motors = {
             f"{joint}_follower": Motor(id_val, "sts3215", norm_mode_body)
-            for joint, id_val in zip(dual_joints, [2, 5])
+            for joint, id_val in zip(dual_joints, [3, 5])
         }
         leader_motors = {
             joint: Motor(id_val, "sts3215", norm_mode_body)
-            for joint, id_val in zip(dual_joints, [3, 4])
+            for joint, id_val in zip(dual_joints, [2, 4])
         }
         single_motors = {
             joint: Motor(id_val, "sts3215", norm_mode_body)
@@ -185,14 +185,14 @@ class UmbraFollowerRobot(Robot):
         start = time.perf_counter()
         obs_dict = self.bus.sync_read("Present_Position")
         obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
-        print("Follower:raw_obs", obs_dict)
+        #print("Follower:raw_obs", obs_dict)
         # Average positions for dual joints
         '''
         for joint in self.dual_joints:
             obs_dict[f"{joint}.pos"] = (obs_dict[f"{joint}.pos"] - obs_dict[f"{joint}_follower.pos"]) / 2
             del obs_dict[f"{joint}_follower.pos"]
             '''
-        print("Follower:obs", obs_dict)  # for debugging
+        #print("Follower:obs", obs_dict)  # for debugging
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read state: {dt_ms:.1f}ms")
 
@@ -204,7 +204,6 @@ class UmbraFollowerRobot(Robot):
             logger.debug(f"{self} read {cam_key}: {dt_ms:.1f}ms")
 
         return obs_dict
-
     def send_action(self, action: dict[str, Any]) -> dict[str, Any]:
         """Command arm to move to a target joint configuration.
 
@@ -222,28 +221,42 @@ class UmbraFollowerRobot(Robot):
             raise DeviceNotConnectedError(f"{self} is not connected.")
 
         goal_pos = {key.removesuffix(".pos"): val for key, val in action.items() if key.endswith(".pos")}
-        print("Follower:goal_pos", goal_pos)  # for debugging
+        #print("Follower:goal_pos", goal_pos)  # for debugging
+
+        # Always read present positions to compute deltas for dual joints and handle capping if enabled.
+        present_pos = self.bus.sync_read("Present_Position")
+
         # Cap goal position when too far away from present position.
         # /!\ Slower fps expected due to reading from the follower.
         if self.config.max_relative_target is not None:
-            present_pos = self.bus.sync_read("Present_Position")
             goal_present_pos = {key: (g_pos, present_pos[key]) for key, g_pos in goal_pos.items()}
             goal_pos = ensure_safe_goal_position(goal_present_pos, self.config.max_relative_target)
+
+        # Set mirrored goals for follower motors in dual joints using deltas to handle offsets.
         
-        
-        # Set mirrored goals for follower motors in dual joints
         for joint in self.dual_joints:
             if joint in goal_pos:
-                goal_pos[f"{joint}_follower"] = -goal_pos[joint]
-        
+                delta = goal_pos[joint] - present_pos[joint]
+                goal_pos[f"{joint}_follower"] = present_pos[f"{joint}_follower"] - delta
+
         goal_pos["gripper"] = 100 - goal_pos["gripper"]
         goal_pos["link4"] = -goal_pos["link4"]
         
+        goal_pos["link1_follower"] = -goal_pos["link1_follower"]
+        goal_pos["link1"] = -goal_pos["link1"]
+        # Default speed value (0-1023; 300 is a safe starting point based on your GUI default.
+        # 0 often means "maximum speed" in Feetech protocols—test what works for your servos.
+        # Higher values = slower speed in some configs; consult STS3215 manual for units.
+        default_speed = 500  # Adjust based on testing (e.g., 0 for max speed, or 200-500 for controlled movement)
+
+        # Set moving speed for all motors being commanded (same keys as goal_pos)
+        speed_goals = {motor: default_speed for motor in goal_pos}
+        self.bus.sync_write("Goal_Velocity", speed_goals)  # Correct register name for Feetech STS series
+
         # Send goal position to the arm
         self.bus.sync_write("Goal_Position", goal_pos)
-        print("follower: sent goals", goal_pos)  # for debugging
+        #print("follower: sent goals", goal_pos)  # for debugging
         return {f"{motor}.pos": val for motor, val in goal_pos.items() if motor in self.bus.motors and not motor.endswith("_follower")}
-    
     def disconnect(self):
         if not self.is_connected:
             raise DeviceNotConnectedError(f"{self} is not connected.")
