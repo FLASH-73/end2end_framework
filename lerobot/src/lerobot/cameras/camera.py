@@ -81,6 +81,7 @@ class Camera(abc.ABC):
     def connect(self, warmup: bool = True) -> None:
         """Establish connection to the camera.
 
+With rerun, you can teleoperate again while simultaneously visualizing the camera feeds and joint positions. In this example, we’re using the Koch arm.
         Args:
             warmup: If True (default), captures a warmup frame before returning. Useful
                    for cameras that require time to adjust capture settings.

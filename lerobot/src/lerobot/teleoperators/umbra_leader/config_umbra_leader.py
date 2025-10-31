@@ -25,7 +25,7 @@ from ..config import TeleoperatorConfig
 @dataclass
 class UmbraLeaderConfig(TeleoperatorConfig):
     # Port to connect to the arm
-    port: str = "/dev/ttyUSB1"
+    port: str = "/dev/ttyUSB0"
 
     disable_torque_on_disconnect: bool = True
 

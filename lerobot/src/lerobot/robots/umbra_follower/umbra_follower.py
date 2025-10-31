@@ -72,6 +72,12 @@ class UmbraFollowerRobot(Robot):
         }
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
+        cam_ft = {
+        cam: (self.config.cameras[cam].height, self.config.cameras[cam].width, 3) for cam in self.cameras
+        }
+        for cam in self.cameras:
+            if hasattr(self.config.cameras[cam], 'use_depth') and self.config.cameras[cam].use_depth:
+                cam_ft[f"{cam}_depth"] = (self.config.cameras[cam].height, self.config.cameras[cam].width, 1)
         return {**self._motors_ft, **self._cameras_ft}
 
     @cached_property
@@ -200,6 +206,8 @@ class UmbraFollowerRobot(Robot):
         for cam_key, cam in self.cameras.items():
             start = time.perf_counter()
             obs_dict[cam_key] = cam.async_read()
+            '''if hasattr(cam.config, 'use_depth') and cam.config.use_depth:
+                obs_dict[f"{cam_key}_depth"] = cam.async_read_depth()'''
             dt_ms = (time.perf_counter() - start) * 1e3
             logger.debug(f"{self} read {cam_key}: {dt_ms:.1f}ms")
 
