@@ -17,7 +17,6 @@
 from typing import Any
 
 import torch
-
 from lerobot.configs.types import PipelineFeatureType, PolicyFeature
 from lerobot.policies.smolvla.configuration_smolvla import SmolVLAConfig
 from lerobot.processor import (

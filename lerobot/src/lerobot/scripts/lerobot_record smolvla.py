@@ -32,6 +32,9 @@ lerobot-record \
     # --teleop.port=/dev/tty.usbmodem58760431551 \
     # --teleop.id=blue \
     # <- Policy optional if you want to record with a policy \
+
+
+    
     # --policy.path=${HF_USER}/my_policy \
 ```
 
@@ -71,7 +74,6 @@ from lerobot.cameras import (  # noqa: F401
 from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig  # noqa: F401
 from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig  # noqa: F401
 from lerobot.configs import parser
-from lerobot.processor.add_missing_robot_images import AddMissingRobotImagesProcessorStep
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.datasets.image_writer import safe_stop_image_writer
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
@@ -81,7 +83,6 @@ from lerobot.datasets.video_utils import VideoEncodingManager
 from lerobot.policies.factory import make_policy, make_pre_post_processors
 from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.policies.utils import make_robot_action
-
 from lerobot.processor import (
     PolicyAction,
     PolicyProcessorPipeline,
@@ -384,20 +385,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
     teleop = make_teleoperator_from_config(cfg.teleop) if cfg.teleop is not None else None
 
     teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
-    robot_observation_processor.steps.append(
-        AddMissingRobotImagesProcessorStep(
-            missing_cameras=["camera1", "camera2", "camera3", "empty_camera_0"],
-            shapes={
-                "camera1": (3, 480, 640),  # Raw shape from your robot config (height, width)
-                "camera2": (3, 480, 848),  # Raw shape from your robot config (height, width)
-                "camera3": (3, 256, 256),  # Expected by policy
-                "empty_camera_0": (3, 480, 640),  # Expected by policy
-            },
-            fill_value=-1.0,
-            duplicate_from={"camera3": "camera1", "empty_camera_0": "camera2"},  # Optional: duplicate for better perf; remove if you prefer fill
-        )
-    )
-    print("Robot observation processor steps count:", len(robot_observation_processor.steps))
+
     dataset_features = combine_feature_dicts(
         aggregate_pipeline_dataset_features(
             pipeline=teleop_action_processor,
@@ -412,7 +400,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
             use_videos=cfg.dataset.video,
         ),
     )
-    print("Dataset observation features keys:", sorted(dataset_features.get("observation", {}).keys()))
+
     if cfg.resume:
         dataset = LeRobotDataset(
             cfg.dataset.repo_id,

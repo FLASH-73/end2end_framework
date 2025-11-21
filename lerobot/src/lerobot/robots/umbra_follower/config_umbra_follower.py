@@ -34,7 +34,7 @@ class UmbraFollowerConfig(RobotConfig):
         # on another USB hub or PCIe card.
         cameras: dict[str, CameraConfig] = field(
             default_factory=lambda: {
-                "cam_main": RealSenseCameraConfig(
+                "camera1": RealSenseCameraConfig(
                     serial_number_or_name= "336222072963",
                     fps=30,
                     width=640,
@@ -42,7 +42,7 @@ class UmbraFollowerConfig(RobotConfig):
                     color_mode=ColorMode.RGB,
                     use_depth=True,
                 ),
-                "cam_wrist": RealSenseCameraConfig(
+                "camera2": RealSenseCameraConfig(
                     serial_number_or_name="218622275492",
                     fps=30,
                     width=848,
