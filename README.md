@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://nextis.ai">
+  <a href="https://nextis.tech">
     <img src="https://img.shields.io/badge/Nextis-Website-319795?style=for-the-badge" alt="Nextis">
   </a>
   <a href="https://a360.co/4pqJisO">
@@ -12,7 +12,7 @@
   <a href="https://a360.co/4ijg64y">
     <img src="https://img.shields.io/badge/Leader%20CAD-319795?style=for-the-badge&logo=autodesk" alt="Leader CAD">
   </a>
-  <a href="https://huggingface.co/datasets/Nextis/umbra03">
+  <a href="https://huggingface.co/datasets/robertodlcg/umbra03">
     <img src="https://img.shields.io/badge/HuggingFace-Dataset-ff6f61?style=for-the-badge&logo=huggingface" alt="Dataset">
   </a>
 </p>
