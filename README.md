@@ -26,8 +26,8 @@
 <p align="center">
 
 <!-- FIXED: Use raw.githubusercontent.com for direct file serving (not blob) -->
-<video src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mov" controls width="900" title="Umbra Mark II Teleoperation Demo">
-  Your browser does not support the video tag. <a href="https://github.com/FLASH-73/end2end_framework/blob/main/media/teleoperate_demo.mov">Download the video here</a>.
+<video src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" controls width="900" title="Umbra Mark II Teleoperation Demo">
+  Your browser does not support the video tag. <a href="https://github.com/FLASH-73/end2end_framework/blob/main/media/teleoperate_demo.mp4">Download the video here</a>.
 </video>
 
 <br>
