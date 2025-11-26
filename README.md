@@ -24,15 +24,24 @@
 ## Demo
 
 <p align="center">
+  <!-- Clickable thumbnail linking to raw video for direct play/download -->
+  <a href="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" target="_blank">
+    <img src="media/markII_follower_assembled.png" width="900" alt="Umbra Teleoperation Demo - Click to Play">
+  </a>
+  <br>
+  <em>Click image to play full teleoperation demo (MP4) • Real-time leader → follower control</em>
+</p>
 
-<!-- FIXED: Use raw.githubusercontent.com for direct file serving (not blob) -->
-<video src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" controls width="900" title="Umbra Mark II Teleoperation Demo">
-  Your browser does not support the video tag. <a href="https://github.com/FLASH-73/end2end_framework/blob/main/media/teleoperate_demo.mp4">Download the video here</a>.
+<!-- Alternative: Embed via GitHub's native video player (if supported in your browser) -->
+<details>
+<summary><strong>Embedded Video Player</strong> (fallback for supported browsers)</summary>
+
+<video controls width="900" preload="metadata">
+  <source src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" type="video/mp4">
+  Your browser doesn't support HTML5 video. <a href="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" download>Download MP4 here</a>.
 </video>
 
-<br>
-<em>Real-time teleoperation with the Umbra Mark II leader → follower system</em>
-</p>
+</details>
 
 ## Interactive 3D CAD Models (Autodesk Fusion 360)
 
