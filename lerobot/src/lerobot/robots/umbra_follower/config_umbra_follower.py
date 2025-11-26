@@ -13,7 +13,7 @@ from lerobot.cameras.configs import ColorMode, Cv2Rotation
 class UmbraFollowerConfig(RobotConfig):
     # Port to connect to the arm
     port: str = "/dev/ttyUSB1"
-
+    arm_side: str = "left" 
     disable_torque_on_disconnect: bool = True
 
     # `max_relative_target` limits the magnitude of the relative positional target vector for safety purposes.

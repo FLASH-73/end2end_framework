@@ -15,6 +15,8 @@
 # limitations under the License.
 
 import logging
+from functools import cached_property
+
 from lerobot.teleoperators.umbra_leader.config_umbra_leader import UmbraLeaderConfig
 from lerobot.teleoperators.umbra_leader import UmbraLeaderRobot
 
@@ -36,46 +38,77 @@ class BiUmbraLeader(Teleoperator):
             id=f"{config.id}_left" if config.id else None,
             calibration_dir=config.calibration_dir,
             port=config.left_arm_port,
-            disable_torque_on_disconnect=config.left_arm_disable_torque_on_disconnect,
-            max_relative_target=config.left_arm_max_relative_target,
-            use_degrees=config.left_arm_use_degrees,
-            cameras={},
         )
         right_arm_config = UmbraLeaderConfig(
             id=f"{config.id}_right" if config.id else None,
             calibration_dir=config.calibration_dir,
             port=config.right_arm_port,
-            disable_torque_on_disconnect=config.right_arm_disable_torque_on_disconnect,
-            max_relative_target=config.right_arm_max_relative_target,
-            use_degrees=config.right_arm_use_degrees,
-            cameras={},
         )
         self.left_arm = UmbraLeaderRobot(left_arm_config)
         self.right_arm = UmbraLeaderRobot(right_arm_config)
+
+    @cached_property
+    def action_features(self) -> dict[str, type]:
+        return {f"left_{motor}.pos": float for motor in self.left_arm.bus.motors} | {
+            f"right_{motor}.pos": float for motor in self.right_arm.bus.motors
+        }
+
+    @cached_property
+    def feedback_features(self) -> dict[str, type]:
+        return {}
 
     @property
     def is_connected(self) -> bool:
         return self.left_arm.is_connected and self.right_arm.is_connected
 
-    def connect(self) -> None:
-        self.left_arm.connect()
-        self.right_arm.connect()
+    def connect(self, calibrate: bool = True) -> None:
+        self.left_arm.connect(calibrate)
+        self.right_arm.connect(calibrate)
+
+    @property
+    def is_calibrated(self) -> bool:
+        return self.left_arm.is_calibrated and self.right_arm.is_calibrated
+
+    def calibrate(self) -> None:
+        self.left_arm.calibrate()
+        self.right_arm.calibrate()
+
+    def configure(self) -> None:
+        self.left_arm.configure()
+        self.right_arm.configure()
+
+    def setup_motors(self) -> None:
+        self.left_arm.setup_motors()
+        self.right_arm.setup_motors()
 
     def get_action(self) -> dict[str, float]:
-        # Get actions from both arms
+        action_dict = {}
+
+        # Add "left_" prefix
         left_action = self.left_arm.get_action()
+        action_dict.update({f"left_{key}": value for key, value in left_action.items()})
+
+        # Add "right_" prefix
         right_action = self.right_arm.get_action()
+        action_dict.update({f"right_{key}": value for key, value in right_action.items()})
 
-        # Prefix keys to distinguish left vs right
-        # (e.g., "base.pos" becomes "left_base.pos")
-        out_action = {}
-        for key, val in left_action.items():
-            out_action[f"left_{key}"] = val
-        for key, val in right_action.items():
-            out_action[f"right_{key}"] = val
-            
-        return out_action
+        return action_dict
 
-    def disconnect(self):
+    def send_feedback(self, feedback: dict[str, float]) -> None:
+        # Remove "left_" prefix
+        left_feedback = {
+            key.removeprefix("left_"): value for key, value in feedback.items() if key.startswith("left_")
+        }
+        # Remove "right_" prefix
+        right_feedback = {
+            key.removeprefix("right_"): value for key, value in feedback.items() if key.startswith("right_")
+        }
+
+        if left_feedback:
+            self.left_arm.send_feedback(left_feedback)
+        if right_feedback:
+            self.right_arm.send_feedback(right_feedback)
+
+    def disconnect(self) -> None:
         self.left_arm.disconnect()
         self.right_arm.disconnect()

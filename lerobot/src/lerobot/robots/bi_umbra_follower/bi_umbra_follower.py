@@ -41,6 +41,7 @@ class BiUmbraFollower(Robot):
         left_arm_config = UmbraFollowerConfig(
             id=f"{config.id}_left" if config.id else None,
             calibration_dir=config.calibration_dir,
+            arm_side="left",
             port=config.left_arm_port,
             disable_torque_on_disconnect=config.left_arm_disable_torque_on_disconnect,
             max_relative_target=config.left_arm_max_relative_target,
@@ -50,6 +51,7 @@ class BiUmbraFollower(Robot):
         right_arm_config = UmbraFollowerConfig(
             id=f"{config.id}_right" if config.id else None,
             calibration_dir=config.calibration_dir,
+            arm_side="right",
             port=config.right_arm_port,
             disable_torque_on_disconnect=config.right_arm_disable_torque_on_disconnect,
             max_relative_target=config.right_arm_max_relative_target,

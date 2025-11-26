@@ -33,6 +33,8 @@ class UmbraFollowerRobot(Robot):
     def __init__(self, config: UmbraFollowerConfig):
         super().__init__(config)
         self.config = config
+        if self.config.arm_side not in ["left", "right"]:
+             raise ValueError(f"arm_side must be 'left' or 'right', got {self.config.arm_side}")
         norm_mode_body = MotorNormMode.DEGREES if config.use_degrees else MotorNormMode.RANGE_M100_100
         dual_joints = ["link1", "link2"]
         single_joints = ["base", "link3", "link4", "link5"]
@@ -247,11 +249,41 @@ class UmbraFollowerRobot(Robot):
                 delta = goal_pos[joint] - present_pos[joint]
                 goal_pos[f"{joint}_follower"] = present_pos[f"{joint}_follower"] - delta
 
-        goal_pos["gripper"] = 100 - goal_pos["gripper"]
-        goal_pos["link4"] = -goal_pos["link4"]
+        # ### CHANGE: ARM-SPECIFIC CONVERSIONS
+        if self.config.arm_side == "left":
+            # Existing logic for LEFT arm
+            if "gripper" in goal_pos:
+                goal_pos["gripper"] = 100 - goal_pos["gripper"]
+            if "link4" in goal_pos:
+                goal_pos["link4"] = -goal_pos["link4"]
+            if "link2_follower" in goal_pos:
+                goal_pos["link2_follower"] = -goal_pos["link2_follower"]
+            if "link2" in goal_pos:
+                goal_pos["link2"] = -goal_pos["link2"]
         
-        goal_pos["link1_follower"] = -goal_pos["link1_follower"]
-        goal_pos["link1"] = -goal_pos["link1"]
+        elif self.config.arm_side == "right":
+            if "link2_follower" in goal_pos:
+                goal_pos["link2_follower"] = -goal_pos["link2_follower"]
+            if "link2" in goal_pos:
+                goal_pos["link2"] = -goal_pos["link2"]
+            if "link1" in goal_pos:
+                goal_pos["link1"] = -goal_pos["link1"]
+            if "link1_follower" in goal_pos:
+                goal_pos["link1_follower"] = -goal_pos["link1_follower"]
+            if "link4" in goal_pos:
+                goal_pos["link4"] = -goal_pos["link4"]
+            # New logic for RIGHT arm (Example - Adjust these to match physical reality)
+            # Usually symmetric arms mirror specific joints (like base or shoulder)
+            #if "gripper" in goal_pos:
+            #    goal_pos["gripper"] = 100 - goal_pos["gripper"] 
+            
+            # Example: Maybe right arm link4 needs to be positive?
+            # if "link4" in goal_pos:
+            #     goal_pos["link4"] = goal_pos["link4"] 
+            
+            # Example: Maybe Link1 on right arm is not inverted?
+            # if "link1" in goal_pos:
+            #    goal_pos["link1"] = goal_pos["link1"]
         # Default speed value (0-1023; 300 is a safe starting point based on your GUI default.
         # 0 often means "maximum speed" in Feetech protocols—test what works for your servos.
         # Higher values = slower speed in some configs; consult STS3215 manual for units.
