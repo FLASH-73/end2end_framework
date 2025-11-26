@@ -31,16 +31,16 @@
 
 <table align="center">
   <tr>
-    <td width="50%" align="center">
+    <td width="50%">
       <a href="https://a360.co/4pqJisO" target="_blank">
         <strong>Umbra Mark II – Follower Arm</strong><br>
-        <img src="https://creator.autodesk.com/viewer/screenshot?shareId=4pqJisO&width=900&height=600" width="100%" alt="Umbra Follower CAD Preview">
+        <img src="media/markII_follower_assembled.png" width="100%" alt="Umbra Follower CAD Preview">
       </a>
     </td>
-    <td width="50%" align="center">
+    <td width="50%">
       <a href="https://a360.co/4ijg64y" target="_blank">
         <strong>Umbra Mark II – Leader Arm</strong><br>
-        <img src="https://creator.autodesk.com/viewer/screenshot?shareId=4ijg64y&width=900&height=600" width="100%" alt="Umbra Leader CAD Preview">
+        <img src="media/markII_leader_assembled.png" width="100%" alt="Umbra Leader CAD Preview">
       </a>
     </td>
   </tr>
