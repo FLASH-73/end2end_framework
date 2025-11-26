@@ -26,7 +26,7 @@
 <p align="center">
 
 <!-- This is the CORRECT way to embed videos on GitHub (and works everywhere) -->
-<video src="https://github.com/Nextis/umbra/raw/main/end2end_framework/media/teleoperate_demo.mov" controls width="900" title="Umbra Mark II Teleoperation Demo">
+<video src="https://github.com/FLASH-73/end2end_framework/blob/main/media/teleoperate_demo.mov" controls width="900" title="Umbra Mark II Teleoperation Demo">
 </video>
 
 <br>
