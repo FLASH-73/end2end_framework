@@ -17,8 +17,8 @@
   </a>
 </p>
 
-<h1 align="center">Umbra Mark II</h1>
-<p align="center"><strong>A high-performance, open-source leader-follower robotic arm</strong></p>
+<h1 align="center">Umbra Mark II (WIP)</h1>
+<p align="center"><strong>Open-source leader-follower robotic arm that has one more DoF than LeRobot</strong></p>
 <p align="center">Designed and built by <strong>Nextis</strong> • Powered by <a href="https://huggingface.co/lerobot">LeRobot</a></p>
 
 ## Demo
