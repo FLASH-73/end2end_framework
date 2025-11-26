@@ -23,7 +23,7 @@
 
 ## Demo (Coming Soon)
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbG9kc2FsbG93ZXIgbm90aGluZyB5ZXQganVzdCBwbGFjZWhvbGRlcg/giphy.gif" width="800">
+  <img src="media/teleoperate_demo.mov" width="800">
   <br><em>Teleoperation • Dataset collection • Trained policy inference</em>
 </p>
 
