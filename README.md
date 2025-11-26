@@ -37,8 +37,8 @@
 <summary><strong>Embedded Video Player</strong> (fallback for supported browsers)</summary>
 
 <video controls width="900" preload="metadata">
-  <source src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" type="video/mp4">
-  Your browser doesn't support HTML5 video. <a href="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.mp4" download>Download MP4 here</a>.
+  <source src="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.gif" type="video/mp4">
+  Your browser doesn't support HTML5 video. <a href="https://raw.githubusercontent.com/FLASH-73/end2end_framework/main/media/teleoperate_demo.gif" download>Download GIF here</a>.
 </video>
 
 </details>
