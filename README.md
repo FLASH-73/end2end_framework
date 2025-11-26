@@ -21,10 +21,16 @@
 <p align="center"><strong>A high-performance, open-source leader-follower robotic arm</strong></p>
 <p align="center">Designed and built by <strong>Nextis</strong> • Powered by <a href="https://huggingface.co/lerobot">LeRobot</a></p>
 
-## Demo (Coming Soon)
+## Demo
+
 <p align="center">
-  <img src="media/teleoperate_demo.mov" width="800">
-  <br><em>Teleoperation • Dataset collection • Trained policy inference</em>
+
+<!-- This is the CORRECT way to embed videos on GitHub (and works everywhere) -->
+<video src="https://github.com/Nextis/umbra/raw/main/end2end_framework/media/teleoperate_demo.mov" controls width="900" title="Umbra Mark II Teleoperation Demo">
+</video>
+
+<br>
+<em>Real-time teleoperation with the Umbra Mark II leader → follower system</em>
 </p>
 
 ## Interactive 3D CAD Models (Autodesk Fusion 360)
