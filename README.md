@@ -29,7 +29,7 @@
     <img src="media/teleoperate_demo.gif" width="900" alt="Umbra Teleoperation Demo - Click to Play">
   </a>
   <br>
-  <em>Click image to play full teleoperation demo (GIF) • Real-time leader → follower control</em>
+
 </p>
 
 ## Interactive 3D CAD Models (Autodesk Fusion 360)
